@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
+import { useMutation, useApolloClient, gql } from "@apollo/client";
 
 import Button from "../components/Button";
 
@@ -23,8 +24,23 @@ const Form = styled.form`
   }
 `
 
+const SIGNUP_USER = gql`
+  mutation signUp($email: String!, $username: String!, $password: String!) {
+    signUp(email: $email, username: $username, password: $password)
+  }
+`
+
 const SignUp = props => {
   const [values,setValues] = useState()
+  const client = useApolloClient()
+  const [singUp, { loading, error }] = useMutation(SIGNUP_USER, {
+    onCompleted: data => {
+      console.log(data.signUp)
+      localStorage.setItem('token', data.signUp)
+      client.writeData({ data: {isLoggedIn: true} }) //обновляем локальный кэш
+      props.history.push('/')
+    }
+  })
 
   const onChange = event => {
     setValues({
@@ -44,6 +60,11 @@ const SignUp = props => {
         onSubmit={event => {
           event.preventDefault()
           console.log(values)
+          singUp({
+            variables: {
+              ...values
+            }
+          })
         }}
       >
         <label htmlFor='username'>Username:</label>
